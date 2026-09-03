@@ -3,21 +3,20 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 
 const connectDB = require("./config/db");
-
-const User = require("./models/user");
-const Project = require("./models/project");
-const Issue = require("./models/issue");
-const Comment = require("./models/comment");
-const Activity = require("./models/activity");
+const authRoutes = require("./routes/authRoutes");
 
 dotenv.config();
 
 connectDB();
 
 const app = express();
+app.use(express.json());
 
 app.use(cors());
 app.use(express.json());
+
+// Routes
+app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.json({
