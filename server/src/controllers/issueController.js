@@ -1,8 +1,7 @@
 const Issue = require("../models/issue");
 const Project = require("../models/project");
-const User = require("../models/user");
+const createActivity = require("../utils/activityLogger");
 
-// CREATE ISSUE
 const createIssue = async (req, res) => {
   try {
     const {
@@ -30,7 +29,6 @@ const createIssue = async (req, res) => {
       });
     }
 
-    // Verify assignee is a project member
     if (assignee) {
       const isMember = project.members.some(
         (member) =>
@@ -56,6 +54,13 @@ const createIssue = async (req, res) => {
       status: "TODO",
     });
 
+    await createActivity({
+      project: projectId,
+      issue: issue._id,
+      user: req.user.userId,
+      action: "ISSUE_CREATED",
+    });
+
     const populatedIssue = await Issue.findById(issue._id)
       .populate("creator", "name email")
       .populate("assignee", "name email");
@@ -73,8 +78,6 @@ const createIssue = async (req, res) => {
   }
 };
 
-
-// GET ALL ISSUES FOR A PROJECT
 const getIssues = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -99,9 +102,7 @@ const getIssues = async (req, res) => {
     const query = {
       project: projectId,
     };
-    
 
-    // Search
     if (search) {
       query.$or = [
         {
@@ -119,22 +120,23 @@ const getIssues = async (req, res) => {
       ];
     }
 
-    // Status filter
     if (status) {
       query.status = status;
     }
 
-    // Priority filter
     if (priority) {
       query.priority = priority;
     }
 
-    // Assignee filter
     if (assignee) {
       query.assignee = assignee;
     }
 
-    const pageNumber = Math.max(parseInt(page) || 1, 1);
+    const pageNumber = Math.max(
+      parseInt(page) || 1,
+      1
+    );
+
     const limitNumber = Math.min(
       Math.max(parseInt(limit) || 10, 1),
       100
@@ -159,7 +161,9 @@ const getIssues = async (req, res) => {
         total,
         page: pageNumber,
         limit: limitNumber,
-        totalPages: Math.ceil(total / limitNumber),
+        totalPages: Math.ceil(
+          total / limitNumber
+        ),
       },
     });
   } catch (error) {
@@ -171,12 +175,12 @@ const getIssues = async (req, res) => {
   }
 };
 
-
-
-// GET SINGLE ISSUE
 const getIssue = async (req, res) => {
   try {
-    const { projectId, issueId } = req.params;
+    const {
+      projectId,
+      issueId,
+    } = req.params;
 
     const issue = await Issue.findOne({
       _id: issueId,
@@ -203,13 +207,12 @@ const getIssue = async (req, res) => {
   }
 };
 
-
-
-
-// UPDATE ISSUE
 const updateIssue = async (req, res) => {
   try {
-    const { projectId, issueId } = req.params;
+    const {
+      projectId,
+      issueId,
+    } = req.params;
 
     const issue = await Issue.findOne({
       _id: issueId,
@@ -236,11 +239,18 @@ const updateIssue = async (req, res) => {
       issue.assignee &&
       issue.assignee.toString() === userId;
 
-    if (!isPrivileged && !isCreator && !isAssignee) {
+    if (
+      !isPrivileged &&
+      !isCreator &&
+      !isAssignee
+    ) {
       return res.status(403).json({
         message: "You cannot modify this issue",
       });
     }
+
+    const previousStatus = issue.status;
+    const previousPriority = issue.priority;
 
     const {
       title,
@@ -277,7 +287,41 @@ const updateIssue = async (req, res) => {
 
     await issue.save();
 
-    const updatedIssue = await Issue.findById(issue._id)
+    if (
+      status !== undefined &&
+      previousStatus !== issue.status
+    ) {
+      await createActivity({
+        project: projectId,
+        issue: issue._id,
+        user: req.user.userId,
+        action: "ISSUE_STATUS_CHANGED",
+        metadata: {
+          from: previousStatus,
+          to: issue.status,
+        },
+      });
+    }
+
+    if (
+      priority !== undefined &&
+      previousPriority !== issue.priority
+    ) {
+      await createActivity({
+        project: projectId,
+        issue: issue._id,
+        user: req.user.userId,
+        action: "ISSUE_PRIORITY_CHANGED",
+        metadata: {
+          from: previousPriority,
+          to: issue.priority,
+        },
+      });
+    }
+
+    const updatedIssue = await Issue.findById(
+      issue._id
+    )
       .populate("creator", "name email")
       .populate("assignee", "name email");
 
@@ -294,12 +338,12 @@ const updateIssue = async (req, res) => {
   }
 };
 
-
-
-// DELETE ISSUE
 const deleteIssue = async (req, res) => {
   try {
-    const { projectId, issueId } = req.params;
+    const {
+      projectId,
+      issueId,
+    } = req.params;
 
     const issue = await Issue.findOne({
       _id: issueId,
@@ -317,7 +361,8 @@ const deleteIssue = async (req, res) => {
       req.projectRole !== "ADMIN"
     ) {
       return res.status(403).json({
-        message: "Only project owners and admins can delete issues",
+        message:
+          "Only project owners and admins can delete issues",
       });
     }
 
@@ -337,13 +382,13 @@ const deleteIssue = async (req, res) => {
   }
 };
 
-
-
-
-// ASSIGN ISSUE
 const assignIssue = async (req, res) => {
   try {
-    const { projectId, issueId } = req.params;
+    const {
+      projectId,
+      issueId,
+    } = req.params;
+
     const { assignee } = req.body;
 
     if (!assignee) {
@@ -368,11 +413,20 @@ const assignIssue = async (req, res) => {
       req.projectRole !== "ADMIN"
     ) {
       return res.status(403).json({
-        message: "Only owners and admins can assign issues",
+        message:
+          "Only owners and admins can assign issues",
       });
     }
 
-    const project = await Project.findById(projectId);
+    const project = await Project.findById(
+      projectId
+    );
+
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
 
     const isMember = project.members.some(
       (member) =>
@@ -381,15 +435,31 @@ const assignIssue = async (req, res) => {
 
     if (!isMember) {
       return res.status(400).json({
-        message: "Assignee must be a project member",
+        message:
+          "Assignee must be a project member",
       });
     }
+
+    const previousAssignee = issue.assignee;
 
     issue.assignee = assignee;
 
     await issue.save();
 
-    const updatedIssue = await Issue.findById(issue._id)
+    await createActivity({
+      project: projectId,
+      issue: issue._id,
+      user: req.user.userId,
+      action: "ISSUE_ASSIGNED",
+      metadata: {
+        from: previousAssignee,
+        to: assignee,
+      },
+    });
+
+    const updatedIssue = await Issue.findById(
+      issue._id
+    )
       .populate("creator", "name email")
       .populate("assignee", "name email");
 
@@ -405,8 +475,6 @@ const assignIssue = async (req, res) => {
     });
   }
 };
-
-
 
 module.exports = {
   createIssue,

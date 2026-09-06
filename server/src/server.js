@@ -7,6 +7,8 @@ const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const memberRoutes = require("./routes/memberRoutes");
 const issueRoutes = require("./routes/issueRoutes");
+const commentRoutes = require("./routes/commentRoutes");
+const activityRoutes = require("./routes/activityRoutes");
 
 dotenv.config();
 
@@ -23,6 +25,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/projects", memberRoutes);
 app.use("/api/projects", issueRoutes);
+app.use("/api/projects", commentRoutes);
+app.use("/api/projects", activityRoutes);
+
 
 app.get("/", (req, res) => {
   res.json({
