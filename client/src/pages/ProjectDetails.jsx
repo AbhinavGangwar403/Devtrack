@@ -18,6 +18,7 @@ import IssueCard from "../components/IssueCard";
 import IssueForm from "../components/IssueForm";
 import MembersPanel from "../components/MembersPanel";
 import ActivityPanel from "../components/ActivityPanel";
+import KanbanBoard from "../components/KanbanBoard";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -26,20 +27,16 @@ const ProjectDetails = () => {
   const [project, setProject] = useState(null);
   const [issues, setIssues] = useState([]);
 
-  const [activeTab, setActiveTab] =
-    useState("overview");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [issueView, setIssueView] = useState("list");
 
   const [loading, setLoading] = useState(true);
-  const [issuesLoading, setIssuesLoading] =
-    useState(false);
+  const [issuesLoading, setIssuesLoading] = useState(false);
 
   const [error, setError] = useState("");
 
-  const [showIssueForm, setShowIssueForm] =
-    useState(false);
-
-  const [showEditProject, setShowEditProject] =
-    useState(false);
+  const [showIssueForm, setShowIssueForm] = useState(false);
+  const [showEditProject, setShowEditProject] = useState(false);
 
   const [projectForm, setProjectForm] = useState({
     name: "",
@@ -52,6 +49,10 @@ const ProjectDetails = () => {
     priority: "",
   });
 
+  // =========================
+  // Fetch Project
+  // =========================
+
   const fetchProject = async () => {
     try {
       setLoading(true);
@@ -59,15 +60,13 @@ const ProjectDetails = () => {
 
       const data = await getProject(projectId);
 
-      const projectData =
-        data.project || data;
+      const projectData = data.project || data;
 
       setProject(projectData);
 
       setProjectForm({
         name: projectData.name || "",
-        description:
-          projectData.description || "",
+        description: projectData.description || "",
       });
     } catch (error) {
       setError(
@@ -79,6 +78,10 @@ const ProjectDetails = () => {
     }
   };
 
+  // =========================
+  // Fetch Issues
+  // =========================
+
   const fetchIssues = async () => {
     try {
       setIssuesLoading(true);
@@ -89,7 +92,7 @@ const ProjectDetails = () => {
         params.search = filters.search;
       }
 
-      if (filters.status) {
+      if (filters.status && issueView === "list") {
         params.status = filters.status;
       }
 
@@ -97,10 +100,7 @@ const ProjectDetails = () => {
         params.priority = filters.priority;
       }
 
-      const data = await getIssues(
-        projectId,
-        params
-      );
+      const data = await getIssues(projectId, params);
 
       setIssues(data.issues || data);
     } catch (error) {
@@ -112,6 +112,10 @@ const ProjectDetails = () => {
       setIssuesLoading(false);
     }
   };
+
+  // =========================
+  // Effects
+  // =========================
 
   useEffect(() => {
     fetchProject();
@@ -127,41 +131,40 @@ const ProjectDetails = () => {
     filters.search,
     filters.status,
     filters.priority,
+    issueView,
   ]);
 
-  const currentMember = project?.members?.find(
-    (member) => {
-      const memberId =
-        member.user?._id || member.user;
+  // =========================
+  // Current User / Permissions
+  // =========================
 
-      return memberId === user?._id;
-    }
-  );
+  const currentMember = project?.members?.find((member) => {
+    const memberId = member.user?._id || member.user;
 
-  const currentUserRole =
-    currentMember?.role || "MEMBER";
+    return memberId === user?._id;
+  });
+
+  const currentUserRole = currentMember?.role || "MEMBER";
 
   const canManageProject =
     currentUserRole === "OWNER" ||
     currentUserRole === "ADMIN";
 
-  const canDeleteProject =
-    currentUserRole === "OWNER";
+  const canDeleteProject = currentUserRole === "OWNER";
 
   const canAssignIssues =
     currentUserRole === "OWNER" ||
     currentUserRole === "ADMIN";
 
-  const handleCreateIssue = async (
-    issueData
-  ) => {
+  // =========================
+  // Create Issue
+  // =========================
+
+  const handleCreateIssue = async (issueData) => {
     try {
       setError("");
 
-      await createIssue(
-        projectId,
-        issueData
-      );
+      await createIssue(projectId, issueData);
 
       setShowIssueForm(false);
       setActiveTab("issues");
@@ -171,6 +174,10 @@ const ProjectDetails = () => {
       throw error;
     }
   };
+
+  // =========================
+  // Update Project
+  // =========================
 
   const handleUpdateProject = async (e) => {
     e.preventDefault();
@@ -183,9 +190,7 @@ const ProjectDetails = () => {
         projectForm
       );
 
-      setProject(
-        data.project || data
-      );
+      setProject(data.project || data);
 
       setShowEditProject(false);
     } catch (error) {
@@ -195,6 +200,10 @@ const ProjectDetails = () => {
       );
     }
   };
+
+  // =========================
+  // Delete Project
+  // =========================
 
   const handleDeleteProject = async () => {
     const confirmed = window.confirm(
@@ -215,12 +224,20 @@ const ProjectDetails = () => {
     }
   };
 
+  // =========================
+  // Filters
+  // =========================
+
   const handleFilterChange = (e) => {
     setFilters({
       ...filters,
       [e.target.name]: e.target.value,
     });
   };
+
+  // =========================
+  // Loading
+  // =========================
 
   if (loading) {
     return (
@@ -232,6 +249,10 @@ const ProjectDetails = () => {
     );
   }
 
+  // =========================
+  // Project Not Found
+  // =========================
+
   if (!project) {
     return (
       <div className="p-6 md:p-8">
@@ -242,6 +263,10 @@ const ProjectDetails = () => {
     );
   }
 
+  // =========================
+  // Issue Stats
+  // =========================
+
   const openIssues = issues.filter(
     (issue) => issue.status !== "DONE"
   ).length;
@@ -249,6 +274,10 @@ const ProjectDetails = () => {
   const completedIssues = issues.filter(
     (issue) => issue.status === "DONE"
   ).length;
+
+  // =========================
+  // Render
+  // =========================
 
   return (
     <div className="p-6 md:p-8">
@@ -273,9 +302,7 @@ const ProjectDetails = () => {
         <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 text-3xl font-bold text-blue-500">
-              {project.name
-                ?.charAt(0)
-                .toUpperCase()}
+              {project.name?.charAt(0).toUpperCase()}
             </div>
 
             <div>
@@ -300,9 +327,7 @@ const ProjectDetails = () => {
             {canManageProject && (
               <button
                 onClick={() =>
-                  setShowEditProject(
-                    !showEditProject
-                  )
+                  setShowEditProject(!showEditProject)
                 }
                 className="rounded-lg border border-slate-700 px-5 py-3 font-medium text-slate-300 hover:bg-slate-800"
               >
@@ -320,9 +345,7 @@ const ProjectDetails = () => {
             )}
 
             <button
-              onClick={() =>
-                setShowIssueForm(true)
-              }
+              onClick={() => setShowIssueForm(true)}
               className="rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
             >
               + Create Issue
@@ -356,14 +379,11 @@ const ProjectDetails = () => {
 
               <textarea
                 rows="4"
-                value={
-                  projectForm.description
-                }
+                value={projectForm.description}
                 onChange={(e) =>
                   setProjectForm({
                     ...projectForm,
-                    description:
-                      e.target.value,
+                    description: e.target.value,
                   })
                 }
                 className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-blue-500"
@@ -435,9 +455,7 @@ const ProjectDetails = () => {
             ].map(([value, label]) => (
               <button
                 key={value}
-                onClick={() =>
-                  setActiveTab(value)
-                }
+                onClick={() => setActiveTab(value)}
                 className={`border-b-2 px-1 pb-3 text-sm font-medium ${
                   activeTab === value
                     ? "border-blue-500 text-blue-500"
@@ -482,10 +500,12 @@ const ProjectDetails = () => {
           </div>
         )}
 
-        {/* Tab content */}
+        {/* Tab Content */}
         <div className="mt-8">
 
-          {/* Overview */}
+          {/* =========================
+              Overview
+          ========================= */}
           {activeTab === "overview" && (
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
@@ -524,12 +544,13 @@ const ProjectDetails = () => {
                   </button>
 
                   <button
-                    onClick={() =>
-                      setActiveTab("issues")
-                    }
+                    onClick={() => {
+                      setIssueView("kanban");
+                      setActiveTab("issues");
+                    }}
                     className="rounded-lg border border-slate-700 px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800"
                   >
-                    View Issues
+                    Open Kanban Board
                   </button>
 
                   <button
@@ -545,71 +566,142 @@ const ProjectDetails = () => {
             </div>
           )}
 
-          {/* Issues */}
+          {/* =========================
+              Issues
+          ========================= */}
           {activeTab === "issues" && (
             <div>
-              <div className="mb-6 flex flex-col gap-4 lg:flex-row">
-                <input
-                  type="text"
-                  name="search"
-                  value={filters.search}
-                  onChange={handleFilterChange}
-                  placeholder="Search issues..."
-                  className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
-                />
 
-                <select
-                  name="status"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
-                >
-                  <option value="">
-                    All Statuses
-                  </option>
-                  <option value="TODO">
-                    To Do
-                  </option>
-                  <option value="IN_PROGRESS">
-                    In Progress
-                  </option>
-                  <option value="REVIEW">
-                    Review
-                  </option>
-                  <option value="DONE">
-                    Done
-                  </option>
-                </select>
+              {/* Issue Toolbar */}
+              <div className="mb-6 flex flex-col gap-4">
 
-                <select
-                  name="priority"
-                  value={filters.priority}
-                  onChange={handleFilterChange}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
-                >
-                  <option value="">
-                    All Priorities
-                  </option>
-                  <option value="LOW">
-                    Low
-                  </option>
-                  <option value="MEDIUM">
-                    Medium
-                  </option>
-                  <option value="HIGH">
-                    High
-                  </option>
-                  <option value="URGENT">
-                    Urgent
-                  </option>
-                </select>
+                {/* Search + Filters */}
+                <div className="flex flex-col gap-3 lg:flex-row">
+                  <input
+                    type="text"
+                    name="search"
+                    value={filters.search}
+                    onChange={handleFilterChange}
+                    placeholder="Search issues..."
+                    className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
+                  />
+
+                  {issueView === "list" && (
+                    <select
+                      name="status"
+                      value={filters.status}
+                      onChange={handleFilterChange}
+                      className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
+                    >
+                      <option value="">
+                        All Statuses
+                      </option>
+
+                      <option value="TODO">
+                        To Do
+                      </option>
+
+                      <option value="IN_PROGRESS">
+                        In Progress
+                      </option>
+
+                      <option value="REVIEW">
+                        Review
+                      </option>
+
+                      <option value="DONE">
+                        Done
+                      </option>
+                    </select>
+                  )}
+
+                  <select
+                    name="priority"
+                    value={filters.priority}
+                    onChange={handleFilterChange}
+                    className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
+                  >
+                    <option value="">
+                      All Priorities
+                    </option>
+
+                    <option value="LOW">
+                      Low
+                    </option>
+
+                    <option value="MEDIUM">
+                      Medium
+                    </option>
+
+                    <option value="HIGH">
+                      High
+                    </option>
+
+                    <option value="URGENT">
+                      Urgent
+                    </option>
+                  </select>
+                </div>
+
+                {/* View Switcher */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      Issues
+                    </h2>
+
+                    <p className="text-sm text-slate-500">
+                      Manage and track project issues.
+                    </p>
+                  </div>
+
+                  <div className="flex rounded-lg border border-slate-800 bg-slate-900 p-1">
+                    <button
+                      onClick={() =>
+                        setIssueView("list")
+                      }
+                      className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                        issueView === "list"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      List
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setIssueView("kanban")
+                      }
+                      className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                        issueView === "kanban"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      Kanban
+                    </button>
+                  </div>
+                </div>
               </div>
 
+              {/* Loading */}
               {issuesLoading ? (
                 <div className="py-20 text-center text-slate-500">
                   Loading issues...
                 </div>
+              ) : issueView === "kanban" ? (
+
+                /* Kanban */
+                <KanbanBoard
+                  projectId={projectId}
+                  issues={issues}
+                  setIssues={setIssues}
+                />
+
               ) : issues.length === 0 ? (
+
+                /* Empty List */
                 <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/50 px-6 py-16 text-center">
                   <h2 className="text-xl font-semibold">
                     No issues found
@@ -628,7 +720,10 @@ const ProjectDetails = () => {
                     + Create Issue
                   </button>
                 </div>
+
               ) : (
+
+                /* List */
                 <div className="grid gap-5 lg:grid-cols-2">
                   {issues.map((issue) => (
                     <IssueCard
@@ -642,7 +737,9 @@ const ProjectDetails = () => {
             </div>
           )}
 
-          {/* Members */}
+          {/* =========================
+              Members
+          ========================= */}
           {activeTab === "members" && (
             <MembersPanel
               projectId={projectId}
@@ -653,13 +750,12 @@ const ProjectDetails = () => {
             />
           )}
 
-          {/* Activity */}
+          {/* =========================
+              Activity
+          ========================= */}
           {activeTab === "activity" && (
-            <ActivityPanel
-              projectId={projectId}
-            />
+            <ActivityPanel projectId={projectId} />
           )}
-
         </div>
       </div>
     </div>
