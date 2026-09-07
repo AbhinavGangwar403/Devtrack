@@ -20,6 +20,8 @@ import MembersPanel from "../components/MembersPanel";
 import ActivityPanel from "../components/ActivityPanel";
 import KanbanBoard from "../components/KanbanBoard";
 
+import socket from "../services/socket";
+
 const ProjectDetails = () => {
   const { projectId } = useParams();
   const { user } = useAuth();
@@ -31,12 +33,16 @@ const ProjectDetails = () => {
   const [issueView, setIssueView] = useState("list");
 
   const [loading, setLoading] = useState(true);
-  const [issuesLoading, setIssuesLoading] = useState(false);
+  const [issuesLoading, setIssuesLoading] =
+    useState(false);
 
   const [error, setError] = useState("");
 
-  const [showIssueForm, setShowIssueForm] = useState(false);
-  const [showEditProject, setShowEditProject] = useState(false);
+  const [showIssueForm, setShowIssueForm] =
+    useState(false);
+
+  const [showEditProject, setShowEditProject] =
+    useState(false);
 
   const [projectForm, setProjectForm] = useState({
     name: "",
@@ -60,13 +66,15 @@ const ProjectDetails = () => {
 
       const data = await getProject(projectId);
 
-      const projectData = data.project || data;
+      const projectData =
+        data.project || data;
 
       setProject(projectData);
 
       setProjectForm({
         name: projectData.name || "",
-        description: projectData.description || "",
+        description:
+          projectData.description || "",
       });
     } catch (error) {
       setError(
@@ -92,7 +100,10 @@ const ProjectDetails = () => {
         params.search = filters.search;
       }
 
-      if (filters.status && issueView === "list") {
+      if (
+        filters.status &&
+        issueView === "list"
+      ) {
         params.status = filters.status;
       }
 
@@ -100,7 +111,10 @@ const ProjectDetails = () => {
         params.priority = filters.priority;
       }
 
-      const data = await getIssues(projectId, params);
+      const data = await getIssues(
+        projectId,
+        params
+      );
 
       setIssues(data.issues || data);
     } catch (error) {
@@ -118,7 +132,9 @@ const ProjectDetails = () => {
   // =========================
 
   useEffect(() => {
-    fetchProject();
+    if (projectId) {
+      fetchProject();
+    }
   }, [projectId]);
 
   useEffect(() => {
@@ -135,22 +151,137 @@ const ProjectDetails = () => {
   ]);
 
   // =========================
+  // Socket.IO Project Room
+  // =========================
+
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    socket.connect();
+
+    socket.emit(
+      "join-project",
+      projectId
+    );
+
+    return () => {
+      socket.emit(
+        "leave-project",
+        projectId
+      );
+
+      socket.disconnect();
+    };
+  }, [projectId]);
+
+  // =========================
+  // Socket.IO Issue Events
+  // =========================
+
+  useEffect(() => {
+    const handleIssueCreated = (issue) => {
+      setIssues((prev) => {
+        const exists = prev.some(
+          (item) =>
+            String(item._id) ===
+            String(issue._id)
+        );
+
+        if (exists) {
+          return prev;
+        }
+
+        return [...prev, issue];
+      });
+    };
+
+    const handleIssueUpdated = (
+      updatedIssue
+    ) => {
+      setIssues((prev) =>
+        prev.map((issue) =>
+          String(issue._id) ===
+          String(updatedIssue._id)
+            ? updatedIssue
+            : issue
+        )
+      );
+    };
+
+    const handleIssueDeleted = ({
+      issueId,
+    }) => {
+      setIssues((prev) =>
+        prev.filter(
+          (issue) =>
+            String(issue._id) !==
+            String(issueId)
+        )
+      );
+    };
+
+    socket.on(
+      "issue-created",
+      handleIssueCreated
+    );
+
+    socket.on(
+      "issue-updated",
+      handleIssueUpdated
+    );
+
+    socket.on(
+      "issue-deleted",
+      handleIssueDeleted
+    );
+
+    return () => {
+      socket.off(
+        "issue-created",
+        handleIssueCreated
+      );
+
+      socket.off(
+        "issue-updated",
+        handleIssueUpdated
+      );
+
+      socket.off(
+        "issue-deleted",
+        handleIssueDeleted
+      );
+    };
+  }, []);
+
+  // =========================
   // Current User / Permissions
   // =========================
 
-  const currentMember = project?.members?.find((member) => {
-    const memberId = member.user?._id || member.user;
+  const currentMember =
+    project?.members?.find(
+      (member) => {
+        const memberId =
+          member.user?._id ||
+          member.user;
 
-    return memberId === user?._id;
-  });
+        return (
+          String(memberId) ===
+          String(user?._id)
+        );
+      }
+    );
 
-  const currentUserRole = currentMember?.role || "MEMBER";
+  const currentUserRole =
+    currentMember?.role || "MEMBER";
 
   const canManageProject =
     currentUserRole === "OWNER" ||
     currentUserRole === "ADMIN";
 
-  const canDeleteProject = currentUserRole === "OWNER";
+  const canDeleteProject =
+    currentUserRole === "OWNER";
 
   const canAssignIssues =
     currentUserRole === "OWNER" ||
@@ -160,11 +291,16 @@ const ProjectDetails = () => {
   // Create Issue
   // =========================
 
-  const handleCreateIssue = async (issueData) => {
+  const handleCreateIssue = async (
+    issueData
+  ) => {
     try {
       setError("");
 
-      await createIssue(projectId, issueData);
+      await createIssue(
+        projectId,
+        issueData
+      );
 
       setShowIssueForm(false);
       setActiveTab("issues");
@@ -185,12 +321,15 @@ const ProjectDetails = () => {
     try {
       setError("");
 
-      const data = await updateProject(
-        projectId,
-        projectForm
-      );
+      const data =
+        await updateProject(
+          projectId,
+          projectForm
+        );
 
-      setProject(data.project || data);
+      setProject(
+        data.project || data
+      );
 
       setShowEditProject(false);
     } catch (error) {
@@ -206,16 +345,20 @@ const ProjectDetails = () => {
   // =========================
 
   const handleDeleteProject = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this project? This cannot be undone."
-    );
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this project? This cannot be undone."
+      );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await deleteProject(projectId);
 
-      window.location.href = "/projects";
+      window.location.href =
+        "/projects";
     } catch (error) {
       setError(
         error.response?.data?.message ||
@@ -267,17 +410,17 @@ const ProjectDetails = () => {
   // Issue Stats
   // =========================
 
-  const openIssues = issues.filter(
-    (issue) => issue.status !== "DONE"
-  ).length;
+  const openIssues =
+    issues.filter(
+      (issue) =>
+        issue.status !== "DONE"
+    ).length;
 
-  const completedIssues = issues.filter(
-    (issue) => issue.status === "DONE"
-  ).length;
-
-  // =========================
-  // Render
-  // =========================
+  const completedIssues =
+    issues.filter(
+      (issue) =>
+        issue.status === "DONE"
+    ).length;
 
   return (
     <div className="p-6 md:p-8">
@@ -298,15 +441,21 @@ const ProjectDetails = () => {
           </div>
         )}
 
-        {/* Header */}
+        {/* Project Header */}
         <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+
           <div className="flex items-center gap-4">
+
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 text-3xl font-bold text-blue-500">
-              {project.name?.charAt(0).toUpperCase()}
+              {project.name
+                ?.charAt(0)
+                .toUpperCase()}
             </div>
 
             <div>
+
               <div className="flex flex-wrap items-center gap-3">
+
                 <h1 className="text-3xl font-bold">
                   {project.name}
                 </h1>
@@ -314,20 +463,27 @@ const ProjectDetails = () => {
                 <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-400">
                   {currentUserRole}
                 </span>
+
               </div>
 
               <p className="mt-1 max-w-2xl text-slate-400">
                 {project.description ||
                   "No description provided."}
               </p>
+
             </div>
+
           </div>
 
+          {/* Project Actions */}
           <div className="flex flex-wrap gap-3">
+
             {canManageProject && (
               <button
                 onClick={() =>
-                  setShowEditProject(!showEditProject)
+                  setShowEditProject(
+                    !showEditProject
+                  )
                 }
                 className="rounded-lg border border-slate-700 px-5 py-3 font-medium text-slate-300 hover:bg-slate-800"
               >
@@ -337,7 +493,9 @@ const ProjectDetails = () => {
 
             {canDeleteProject && (
               <button
-                onClick={handleDeleteProject}
+                onClick={
+                  handleDeleteProject
+                }
                 className="rounded-lg border border-red-900 px-5 py-3 font-medium text-red-400 hover:bg-red-950/40"
               >
                 Delete
@@ -345,25 +503,33 @@ const ProjectDetails = () => {
             )}
 
             <button
-              onClick={() => setShowIssueForm(true)}
+              onClick={() =>
+                setShowIssueForm(true)
+              }
               className="rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
             >
               + Create Issue
             </button>
+
           </div>
+
         </div>
 
         {/* Edit Project */}
         {showEditProject && (
           <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
+
             <h2 className="text-xl font-semibold">
               Edit Project
             </h2>
 
             <form
-              onSubmit={handleUpdateProject}
+              onSubmit={
+                handleUpdateProject
+              }
               className="mt-5 space-y-5"
             >
+
               <input
                 type="text"
                 required
@@ -379,17 +545,21 @@ const ProjectDetails = () => {
 
               <textarea
                 rows="4"
-                value={projectForm.description}
+                value={
+                  projectForm.description
+                }
                 onChange={(e) =>
                   setProjectForm({
                     ...projectForm,
-                    description: e.target.value,
+                    description:
+                      e.target.value,
                   })
                 }
                 className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-blue-500"
               />
 
               <div className="flex gap-3">
+
                 <button
                   type="submit"
                   className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium hover:bg-blue-700"
@@ -406,24 +576,32 @@ const ProjectDetails = () => {
                 >
                   Cancel
                 </button>
+
               </div>
+
             </form>
+
           </div>
         )}
 
         {/* Stats */}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
+
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+
             <p className="text-sm text-slate-400">
               Members
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              {project.members?.length || 0}
+              {project.members?.length ||
+                0}
             </p>
+
           </div>
 
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+
             <p className="text-sm text-slate-400">
               Open Issues
             </p>
@@ -431,9 +609,11 @@ const ProjectDetails = () => {
             <p className="mt-2 text-3xl font-bold">
               {openIssues}
             </p>
+
           </div>
 
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+
             <p className="text-sm text-slate-400">
               Completed
             </p>
@@ -441,38 +621,51 @@ const ProjectDetails = () => {
             <p className="mt-2 text-3xl font-bold">
               {completedIssues}
             </p>
+
           </div>
+
         </div>
 
         {/* Tabs */}
         <div className="mt-8 overflow-x-auto border-b border-slate-800">
+
           <div className="flex min-w-max gap-7">
+
             {[
               ["overview", "Overview"],
               ["issues", "Issues"],
               ["members", "Members"],
               ["activity", "Activity"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                onClick={() => setActiveTab(value)}
-                className={`border-b-2 px-1 pb-3 text-sm font-medium ${
-                  activeTab === value
-                    ? "border-blue-500 text-blue-500"
-                    : "border-transparent text-slate-400 hover:text-white"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            ].map(
+              ([value, label]) => (
+                <button
+                  key={value}
+                  onClick={() =>
+                    setActiveTab(value)
+                  }
+                  className={`border-b-2 px-1 pb-3 text-sm font-medium ${
+                    activeTab === value
+                      ? "border-blue-500 text-blue-500"
+                      : "border-transparent text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            )}
+
           </div>
+
         </div>
 
         {/* Create Issue Modal */}
         {showIssueForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+
             <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+
               <div className="mb-6 flex items-center justify-between">
+
                 <h2 className="text-xl font-semibold">
                   Create Issue
                 </h2>
@@ -485,30 +678,42 @@ const ProjectDetails = () => {
                 >
                   ×
                 </button>
+
               </div>
 
               <IssueForm
-                members={project.members}
-                canAssign={canAssignIssues}
-                onSubmit={handleCreateIssue}
+                members={
+                  project.members
+                }
+                canAssign={
+                  canAssignIssues
+                }
+                onSubmit={
+                  handleCreateIssue
+                }
                 onCancel={() =>
                   setShowIssueForm(false)
                 }
                 submitLabel="Create Issue"
               />
+
             </div>
+
           </div>
         )}
 
-        {/* Tab Content */}
+        {/* Main Content */}
         <div className="mt-8">
 
           {/* =========================
               Overview
           ========================= */}
+
           {activeTab === "overview" && (
             <div className="grid gap-6 lg:grid-cols-2">
+
               <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+
                 <h2 className="text-xl font-semibold">
                   Project Overview
                 </h2>
@@ -517,17 +722,22 @@ const ProjectDetails = () => {
                   {project.description ||
                     "This project doesn't have a description yet."}
                 </p>
+
               </div>
 
               <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+
                 <h2 className="text-xl font-semibold">
                   Quick Actions
                 </h2>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
+
                   <button
                     onClick={() =>
-                      setShowIssueForm(true)
+                      setShowIssueForm(
+                        true
+                      )
                     }
                     className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium hover:bg-blue-700"
                   >
@@ -536,7 +746,9 @@ const ProjectDetails = () => {
 
                   <button
                     onClick={() =>
-                      setActiveTab("members")
+                      setActiveTab(
+                        "members"
+                      )
                     }
                     className="rounded-lg border border-slate-700 px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800"
                   >
@@ -545,8 +757,13 @@ const ProjectDetails = () => {
 
                   <button
                     onClick={() => {
-                      setIssueView("kanban");
-                      setActiveTab("issues");
+                      setIssueView(
+                        "kanban"
+                      );
+
+                      setActiveTab(
+                        "issues"
+                      );
                     }}
                     className="rounded-lg border border-slate-700 px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800"
                   >
@@ -555,42 +772,54 @@ const ProjectDetails = () => {
 
                   <button
                     onClick={() =>
-                      setActiveTab("activity")
+                      setActiveTab(
+                        "activity"
+                      )
                     }
                     className="rounded-lg border border-slate-700 px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800"
                   >
                     View Activity
                   </button>
+
                 </div>
+
               </div>
+
             </div>
           )}
 
           {/* =========================
               Issues
           ========================= */}
+
           {activeTab === "issues" && (
             <div>
 
-              {/* Issue Toolbar */}
               <div className="mb-6 flex flex-col gap-4">
 
-                {/* Search + Filters */}
                 <div className="flex flex-col gap-3 lg:flex-row">
+
                   <input
                     type="text"
                     name="search"
                     value={filters.search}
-                    onChange={handleFilterChange}
+                    onChange={
+                      handleFilterChange
+                    }
                     placeholder="Search issues..."
                     className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
                   />
 
-                  {issueView === "list" && (
+                  {issueView ===
+                    "list" && (
                     <select
                       name="status"
-                      value={filters.status}
-                      onChange={handleFilterChange}
+                      value={
+                        filters.status
+                      }
+                      onChange={
+                        handleFilterChange
+                      }
                       className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
                     >
                       <option value="">
@@ -617,8 +846,12 @@ const ProjectDetails = () => {
 
                   <select
                     name="priority"
-                    value={filters.priority}
-                    onChange={handleFilterChange}
+                    value={
+                      filters.priority
+                    }
+                    onChange={
+                      handleFilterChange
+                    }
                     className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
                   >
                     <option value="">
@@ -641,11 +874,13 @@ const ProjectDetails = () => {
                       Urgent
                     </option>
                   </select>
+
                 </div>
 
-                {/* View Switcher */}
                 <div className="flex items-center justify-between">
+
                   <div>
+
                     <h2 className="text-lg font-semibold">
                       Issues
                     </h2>
@@ -653,15 +888,20 @@ const ProjectDetails = () => {
                     <p className="text-sm text-slate-500">
                       Manage and track project issues.
                     </p>
+
                   </div>
 
                   <div className="flex rounded-lg border border-slate-800 bg-slate-900 p-1">
+
                     <button
                       onClick={() =>
-                        setIssueView("list")
+                        setIssueView(
+                          "list"
+                        )
                       }
                       className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                        issueView === "list"
+                        issueView ===
+                        "list"
                           ? "bg-blue-600 text-white"
                           : "text-slate-400 hover:text-white"
                       }`}
@@ -671,38 +911,45 @@ const ProjectDetails = () => {
 
                     <button
                       onClick={() =>
-                        setIssueView("kanban")
+                        setIssueView(
+                          "kanban"
+                        )
                       }
                       className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                        issueView === "kanban"
+                        issueView ===
+                        "kanban"
                           ? "bg-blue-600 text-white"
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
                       Kanban
                     </button>
+
                   </div>
+
                 </div>
+
               </div>
 
-              {/* Loading */}
               {issuesLoading ? (
                 <div className="py-20 text-center text-slate-500">
                   Loading issues...
                 </div>
-              ) : issueView === "kanban" ? (
-
-                /* Kanban */
+              ) : issueView ===
+                "kanban" ? (
                 <KanbanBoard
-                  projectId={projectId}
+                  projectId={
+                    projectId
+                  }
                   issues={issues}
-                  setIssues={setIssues}
+                  setIssues={
+                    setIssues
+                  }
                 />
-
-              ) : issues.length === 0 ? (
-
-                /* Empty List */
+              ) : issues.length ===
+                0 ? (
                 <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/50 px-6 py-16 text-center">
+
                   <h2 className="text-xl font-semibold">
                     No issues found
                   </h2>
@@ -713,50 +960,67 @@ const ProjectDetails = () => {
 
                   <button
                     onClick={() =>
-                      setShowIssueForm(true)
+                      setShowIssueForm(
+                        true
+                      )
                     }
                     className="mt-5 rounded-lg bg-blue-600 px-5 py-2.5 font-medium hover:bg-blue-700"
                   >
                     + Create Issue
                   </button>
+
                 </div>
-
               ) : (
-
-                /* List */
                 <div className="grid gap-5 lg:grid-cols-2">
-                  {issues.map((issue) => (
-                    <IssueCard
-                      key={issue._id}
-                      issue={issue}
-                      projectId={projectId}
-                    />
-                  ))}
+
+                  {issues.map(
+                    (issue) => (
+                      <IssueCard
+                        key={issue._id}
+                        issue={issue}
+                        projectId={
+                          projectId
+                        }
+                      />
+                    )
+                  )}
+
                 </div>
               )}
+
             </div>
           )}
 
           {/* =========================
               Members
           ========================= */}
+
           {activeTab === "members" && (
             <MembersPanel
               projectId={projectId}
               project={project}
               setProject={setProject}
-              currentUserId={user?._id}
-              currentUserRole={currentUserRole}
+              currentUserId={
+                user?._id
+              }
+              currentUserRole={
+                currentUserRole
+              }
             />
           )}
 
           {/* =========================
               Activity
           ========================= */}
+
           {activeTab === "activity" && (
-            <ActivityPanel projectId={projectId} />
+            <ActivityPanel
+              projectId={projectId}
+            />
           )}
+
         </div>
+
       </div>
     </div>
   );

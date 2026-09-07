@@ -1,6 +1,7 @@
 const Issue = require("../models/issue");
 const Project = require("../models/project");
 const createActivity = require("../utils/activityLogger");
+const { getIO } = require("../utils/socket");
 
 const createIssue = async (req, res) => {
   try {
@@ -60,6 +61,13 @@ const createIssue = async (req, res) => {
       user: req.user.userId,
       action: "ISSUE_CREATED",
     });
+
+    const io = getIO();
+
+    io.to(`project:${projectId}`).emit(
+      "issue-created",
+      issue
+    );
 
     const populatedIssue = await Issue.findById(issue._id)
       .populate("creator", "name email")
@@ -325,6 +333,13 @@ const updateIssue = async (req, res) => {
       .populate("creator", "name email")
       .populate("assignee", "name email");
 
+    const io = getIO();
+
+    io.to(`project:${projectId}`).emit(
+      "issue-updated",
+      updatedIssue
+    );
+
     res.status(200).json({
       message: "Issue updated successfully",
       issue: updatedIssue,
@@ -369,6 +384,15 @@ const deleteIssue = async (req, res) => {
     await Issue.deleteOne({
       _id: issueId,
     });
+
+    const io = getIO();
+
+    io.to(`project:${projectId}`).emit(
+      "issue-deleted",
+      {
+        issueId,
+      }
+    );
 
     res.status(200).json({
       message: "Issue deleted successfully",
@@ -457,11 +481,21 @@ const assignIssue = async (req, res) => {
       },
     });
 
+
+
     const updatedIssue = await Issue.findById(
       issue._id
     )
       .populate("creator", "name email")
       .populate("assignee", "name email");
+
+
+    const io = getIO();
+
+    io.to(`project:${projectId}`).emit(
+      "issue-updated",
+      updatedIssue
+    );
 
     res.status(200).json({
       message: "Issue assigned successfully",

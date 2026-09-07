@@ -1,8 +1,8 @@
 const Comment = require("../models/comment");
 const Issue = require("../models/issue");
 const createActivity = require("../utils/activityLogger");
+const { getIO } = require("../utils/socket");
 
-// ADD COMMENT
 const addComment = async (req, res) => {
   try {
     const { projectId, issueId } = req.params;
@@ -44,6 +44,13 @@ const addComment = async (req, res) => {
       },
     });
 
+    const io = getIO();
+
+    io.to(`project:${projectId}`).emit(
+      "comment-added",
+      populatedComment
+    );
+
     res.status(201).json({
       message: "Comment added successfully",
       comment: populatedComment,
@@ -57,7 +64,6 @@ const addComment = async (req, res) => {
   }
 };
 
-// GET COMMENTS
 const getComments = async (req, res) => {
   try {
     const { projectId, issueId } = req.params;

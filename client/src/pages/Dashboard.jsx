@@ -1,20 +1,27 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
 import { getProjects } from "../services/projectService";
 import { getIssues } from "../services/issueService";
 
+import AnalyticsPanel from "../components/AnalyticsPanel";
+import { getProjectAnalytics } from "../services/analyticsService";
+
+import socket from "../services/socket";
+
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
-  const [recentIssues, setRecentIssues] =
-    useState([]);
+  const [recentIssues, setRecentIssues] = useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [analytics, setAnalytics] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] =
+    useState("");
+
+  const [loading, setLoading] = useState(true);
 
   const fetchDashboard = async () => {
     try {
-      const projectData =
-        await getProjects();
+      const projectData = await getProjects();
 
       const projectList =
         projectData.projects ||
@@ -23,17 +30,23 @@ const Dashboard = () => {
 
       setProjects(projectList);
 
+      // Select the first project for dashboard analytics
+      if (projectList.length > 0) {
+        setSelectedProjectId(
+          projectList[0]._id
+        );
+      }
+
       const issueResults = [];
 
-      for (const project of projectList.slice(
-        0,
-        5
-      )) {
+      for (const project of projectList.slice(0, 5)) {
         try {
-          const issueData =
-            await getIssues(project._id, {
+          const issueData = await getIssues(
+            project._id,
+            {
               limit: 5,
-            });
+            }
+          );
 
           const issues =
             issueData.issues ||
@@ -43,8 +56,7 @@ const Dashboard = () => {
           issueResults.push(
             ...issues.map((issue) => ({
               ...issue,
-              projectName:
-                project.name,
+              projectName: project.name,
             }))
           );
         } catch {
@@ -65,9 +77,91 @@ const Dashboard = () => {
     }
   };
 
+  /*
+   * Load analytics for selected project
+   */
+  const loadAnalytics = async () => {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    try {
+      const data =
+        await getProjectAnalytics(
+          selectedProjectId
+        );
+
+      setAnalytics(data);
+    } catch (error) {
+      console.error(
+        "Failed to load analytics:",
+        error
+      );
+
+      setAnalytics(null);
+    }
+  };
+
+  /*
+   * Load dashboard data
+   */
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  /*
+   * Load analytics whenever
+   * selected project changes
+   */
+  useEffect(() => {
+    loadAnalytics();
+  }, [selectedProjectId]);
+
+  /*
+   * Refresh analytics when
+   * issues change in real time
+   */
+  useEffect(() => {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    const refreshAnalytics = () => {
+      loadAnalytics();
+    };
+
+    socket.on(
+      "issue-created",
+      refreshAnalytics
+    );
+
+    socket.on(
+      "issue-updated",
+      refreshAnalytics
+    );
+
+    socket.on(
+      "issue-deleted",
+      refreshAnalytics
+    );
+
+    return () => {
+      socket.off(
+        "issue-created",
+        refreshAnalytics
+      );
+
+      socket.off(
+        "issue-updated",
+        refreshAnalytics
+      );
+
+      socket.off(
+        "issue-deleted",
+        refreshAnalytics
+      );
+    };
+  }, [selectedProjectId]);
 
   if (loading) {
     return (
@@ -91,6 +185,7 @@ const Dashboard = () => {
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
 
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">
             Dashboard
@@ -103,6 +198,7 @@ const Dashboard = () => {
 
         {/* Stats */}
         <div className="mt-8 grid gap-5 md:grid-cols-3">
+
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
             <p className="text-sm text-slate-400">
               Projects
@@ -132,11 +228,64 @@ const Dashboard = () => {
               {completed}
             </p>
           </div>
+
         </div>
+
+        {/* Analytics */}
+        {projects.length > 0 && (
+          <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
+
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+              <div>
+                <h2 className="text-xl font-semibold">
+                  Project Analytics
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  View analytics for a project.
+                </p>
+              </div>
+
+              <select
+                value={selectedProjectId}
+                onChange={(event) =>
+                  setSelectedProjectId(
+                    event.target.value
+                  )
+                }
+                className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-200 outline-none focus:border-blue-500"
+              >
+                {projects.map((project) => (
+                  <option
+                    key={project._id}
+                    value={project._id}
+                  >
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+
+            </div>
+
+            {analytics ? (
+              <AnalyticsPanel
+                analytics={analytics}
+              />
+            ) : (
+              <p className="py-8 text-center text-sm text-slate-500">
+                Loading analytics...
+              </p>
+            )}
+
+          </div>
+        )}
 
         {/* Projects */}
         <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
+
           <div className="flex items-center justify-between">
+
             <h2 className="text-xl font-semibold">
               Your Projects
             </h2>
@@ -147,10 +296,12 @@ const Dashboard = () => {
             >
               View all →
             </Link>
+
           </div>
 
           {projects.length === 0 ? (
             <div className="py-10 text-center">
+
               <p className="text-slate-500">
                 No projects yet.
               </p>
@@ -161,11 +312,14 @@ const Dashboard = () => {
               >
                 Create Project
               </Link>
+
             </div>
           ) : (
             <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {projects.slice(0, 6).map(
-                (project) => (
+
+              {projects
+                .slice(0, 6)
+                .map((project) => (
                   <Link
                     key={project._id}
                     to={`/projects/${project._id}`}
@@ -181,14 +335,16 @@ const Dashboard = () => {
                       members
                     </p>
                   </Link>
-                )
-              )}
+                ))}
+
             </div>
           )}
+
         </div>
 
-        {/* Recent issues */}
+        {/* Recent Issues */}
         <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
+
           <h2 className="text-xl font-semibold">
             Recent Issues
           </h2>
@@ -199,40 +355,45 @@ const Dashboard = () => {
             </p>
           ) : (
             <div className="mt-5 space-y-3">
-              {recentIssues.map(
-                (issue) => (
-                  <Link
-                    key={issue._id}
-                    to={`/projects/${issue.project}/issues/${issue._id}`}
-                    className="flex flex-col gap-2 rounded-lg bg-slate-800 p-4 transition hover:bg-slate-700 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {issue.title}
-                      </p>
 
-                      <p className="text-xs text-slate-500">
-                        {issue.projectName}
-                      </p>
-                    </div>
+              {recentIssues.map((issue) => (
+                <Link
+                  key={issue._id}
+                  to={`/projects/${issue.project}/issues/${issue._id}`}
+                  className="flex flex-col gap-2 rounded-lg bg-slate-800 p-4 transition hover:bg-slate-700 sm:flex-row sm:items-center sm:justify-between"
+                >
 
-                    <div className="flex gap-2">
-                      <span className="rounded-full bg-slate-700 px-3 py-1 text-xs text-slate-300">
-                        {issue.status?.replace(
-                          "_",
-                          " "
-                        )}
-                      </span>
+                  <div>
+                    <p className="font-medium">
+                      {issue.title}
+                    </p>
 
-                      <span className="rounded-full bg-slate-700 px-3 py-1 text-xs text-slate-300">
-                        {issue.priority}
-                      </span>
-                    </div>
-                  </Link>
-                )
-              )}
+                    <p className="text-xs text-slate-500">
+                      {issue.projectName}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+
+                    <span className="rounded-full bg-slate-700 px-3 py-1 text-xs text-slate-300">
+                      {issue.status?.replace(
+                        "_",
+                        " "
+                      )}
+                    </span>
+
+                    <span className="rounded-full bg-slate-700 px-3 py-1 text-xs text-slate-300">
+                      {issue.priority}
+                    </span>
+
+                  </div>
+
+                </Link>
+              ))}
+
             </div>
           )}
+
         </div>
 
       </div>
