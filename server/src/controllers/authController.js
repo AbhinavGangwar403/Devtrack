@@ -1,3 +1,5 @@
+// Authentication controller.
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -12,27 +14,19 @@ const generateToken = (userId) => {
     }
   );
 };
-
-// POST /api/auth/register
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
-    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "Name, email and password are required",
       });
     }
-
-    // Check password length
     if (password.length < 6) {
       return res.status(400).json({
         message: "Password must be at least 6 characters",
       });
     }
-
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -40,40 +34,30 @@ const register = async (req, res) => {
         message: "User with this email already exists",
       });
     }
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
     });
-
-    // Generate JWT
     const token = generateToken(user._id);
 
     return res.status(201).json({
       message: "User registered successfully",
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-      },
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    },
     });
   } catch (error) {
-    console.error("Register error:", error);
-
-    return res.status(500).json({
+return res.status(500).json({
       message: "Server error during registration",
     });
   }
 };
-
-// POST /api/auth/login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -83,8 +67,6 @@ const login = async (req, res) => {
         message: "Email and password are required",
       });
     }
-
-    // Find user
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -92,8 +74,6 @@ const login = async (req, res) => {
         message: "Invalid email or password",
       });
     }
-
-    // Compare password
     const isPasswordCorrect = await bcrypt.compare(
       password,
       user.password
@@ -104,30 +84,24 @@ const login = async (req, res) => {
         message: "Invalid email or password",
       });
     }
-
-    // Generate JWT
     const token = generateToken(user._id);
 
     return res.status(200).json({
       message: "Login successful",
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-      },
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    },
     });
   } catch (error) {
-    console.error("Login error:", error);
-
-    return res.status(500).json({
+return res.status(500).json({
       message: "Server error during login",
     });
   }
 };
-
-// GET /api/auth/me
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
@@ -142,9 +116,7 @@ const getMe = async (req, res) => {
       user,
     });
   } catch (error) {
-    console.error("Get me error:", error);
-
-    return res.status(500).json({
+return res.status(500).json({
       message: "Server error",
     });
   }

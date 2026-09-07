@@ -13,6 +13,7 @@ import IssueDetails from "./pages/IssueDetails";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
+import NotFound from "./pages/NotFound";
 
 const ProtectedPage = ({ children }) => (
   <ProtectedRoute>
@@ -80,6 +81,11 @@ const App = () => {
               <IssueDetails />
             </ProtectedPage>
           }
+        />
+
+        <Route
+          path="*"
+          element={<NotFound />}
         />
 
       </Routes>

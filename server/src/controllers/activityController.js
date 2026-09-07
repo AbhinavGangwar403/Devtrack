@@ -1,3 +1,5 @@
+// Project activity controller.
+
 const Activity = require("../models/activity");
 
 const getProjectActivities = async (req, res) => {
@@ -16,9 +18,7 @@ const getProjectActivities = async (req, res) => {
       activities,
     });
   } catch (error) {
-    console.error("Get activities error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching activities",
     });
   }
@@ -40,9 +40,7 @@ const getIssueActivities = async (req, res) => {
       activities,
     });
   } catch (error) {
-    console.error("Get issue activities error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching issue activities",
     });
   }

@@ -1,3 +1,5 @@
+// Project analytics summary and breakdowns.
+
 const statusLabels = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
@@ -47,7 +49,7 @@ const AnalyticsPanel = ({
 
   return (
     <div className="space-y-6">
-      {/* Summary */}
+
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
           <p className="text-sm text-slate-500">
@@ -80,7 +82,6 @@ const AnalyticsPanel = ({
         </div>
       </div>
 
-      {/* Status + Priority */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
           <h2 className="mb-5 text-lg font-semibold text-white">

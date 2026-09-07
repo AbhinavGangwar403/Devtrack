@@ -1,3 +1,5 @@
+// User login page.
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -43,7 +45,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Logo / Heading */}
+
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white">
             Dev<span className="text-blue-500">Track</span>
@@ -54,7 +56,6 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Card */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
           <h2 className="text-2xl font-semibold text-white mb-6">
             Welcome back
@@ -67,7 +68,7 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
+
             <div>
               <label
                 htmlFor="email"
@@ -88,7 +89,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label
                 htmlFor="password"
@@ -109,7 +109,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -119,7 +118,6 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Register */}
           <p className="text-center text-sm text-slate-400 mt-6">
             Don't have an account?{" "}
             <Link

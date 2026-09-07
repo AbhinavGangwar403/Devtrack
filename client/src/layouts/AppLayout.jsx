@@ -1,3 +1,5 @@
+// Application shell and navigation.
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -19,10 +21,8 @@ const AppLayout = ({ children }) => {
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="flex min-h-screen">
 
-        {/* Sidebar */}
         <aside className="hidden w-64 border-r border-slate-800 bg-slate-900 md:flex md:flex-col">
 
-          {/* Logo */}
           <div className="border-b border-slate-800 px-6 py-5">
             <Link
               to="/dashboard"
@@ -32,7 +32,6 @@ const AppLayout = ({ children }) => {
             </Link>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 space-y-2 p-4">
 
             <Link
@@ -59,7 +58,6 @@ const AppLayout = ({ children }) => {
 
           </nav>
 
-          {/* User */}
           <div className="border-t border-slate-800 p-4">
             <div className="mb-3">
               <p className="font-medium">
@@ -80,10 +78,8 @@ const AppLayout = ({ children }) => {
           </div>
         </aside>
 
-        {/* Main */}
         <div className="flex min-w-0 flex-1 flex-col">
 
-          {/* Mobile header */}
           <header className="border-b border-slate-800 bg-slate-900 px-4 py-4 md:hidden">
             <div className="flex items-center justify-between">
               <Link
@@ -102,7 +98,6 @@ const AppLayout = ({ children }) => {
             </div>
           </header>
 
-          {/* Page */}
           <main className="flex-1">
             {children}
           </main>

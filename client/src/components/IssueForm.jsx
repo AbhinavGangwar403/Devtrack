@@ -1,3 +1,5 @@
+// Issue creation and editing form.
+
 import { useEffect, useState } from "react";
 
 const IssueForm = ({
@@ -76,7 +78,7 @@ const IssueForm = ({
       onSubmit={handleSubmit}
       className="space-y-5"
     >
-      {/* Title */}
+
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Title
@@ -94,7 +96,6 @@ const IssueForm = ({
         />
       </div>
 
-      {/* Description */}
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Description
@@ -110,7 +111,6 @@ const IssueForm = ({
         />
       </div>
 
-      {/* Priority / Status */}
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-300">
@@ -151,7 +151,6 @@ const IssueForm = ({
         </div>
       </div>
 
-      {/* Assignee */}
       {canAssign && (
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-300">
@@ -184,7 +183,6 @@ const IssueForm = ({
         </div>
       )}
 
-      {/* Labels */}
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Labels
@@ -204,7 +202,6 @@ const IssueForm = ({
         </p>
       </div>
 
-      {/* Due date */}
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Due date
@@ -219,7 +216,6 @@ const IssueForm = ({
         />
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-3 border-t border-slate-800 pt-5">
         <button
           type="button"

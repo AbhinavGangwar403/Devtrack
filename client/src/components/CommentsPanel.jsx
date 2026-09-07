@@ -4,6 +4,8 @@ import {
   getComments,
 } from "../services/commentService";
 
+import socket from "../services/socket";
+
 const CommentsPanel = ({ projectId, issueId }) => {
   const [comments, setComments] = useState([]);
   const [content, setContent] = useState("");
@@ -35,6 +37,41 @@ const CommentsPanel = ({ projectId, issueId }) => {
     fetchComments();
   }, [projectId, issueId]);
 
+  useEffect(() => {
+    const handleCommentAdded = (comment) => {
+      if (
+        String(comment.issue) !==
+        String(issueId)
+      ) {
+        return;
+      }
+
+      setComments((prev) => {
+        const exists = prev.some(
+          (item) =>
+            String(item._id) ===
+            String(comment._id)
+        );
+
+        return exists
+          ? prev
+          : [...prev, comment];
+      });
+    };
+
+    socket.on(
+      "comment-added",
+      handleCommentAdded
+    );
+
+    return () => {
+      socket.off(
+        "comment-added",
+        handleCommentAdded
+      );
+    };
+  }, [issueId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -53,10 +90,17 @@ const CommentsPanel = ({ projectId, issueId }) => {
       const newComment =
         data.comment || data;
 
-      setComments((prev) => [
-        ...prev,
-        newComment,
-      ]);
+      setComments((prev) => {
+        const exists = prev.some(
+          (item) =>
+            String(item._id) ===
+            String(newComment._id)
+        );
+
+        return exists
+          ? prev
+          : [...prev, newComment];
+      });
 
       setContent("");
     } catch (error) {

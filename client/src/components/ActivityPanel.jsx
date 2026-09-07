@@ -1,3 +1,5 @@
+// Project activity timeline.
+
 import { useEffect, useState } from "react";
 import { getProjectActivities } from "../services/activityService";
 
@@ -22,11 +24,7 @@ const ActivityPanel = ({ projectId }) => {
 
         setActivities(data.activities || data);
       } catch (error) {
-        console.error(
-          "Failed to load activities:",
-          error
-        );
-      } finally {
+} finally {
         setLoading(false);
       }
     };

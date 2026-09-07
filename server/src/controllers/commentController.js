@@ -1,3 +1,5 @@
+// Comment controller.
+
 const Comment = require("../models/comment");
 const Issue = require("../models/issue");
 const createActivity = require("../utils/activityLogger");
@@ -56,9 +58,7 @@ const addComment = async (req, res) => {
       comment: populatedComment,
     });
   } catch (error) {
-    console.error("Add comment error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while adding comment",
     });
   }
@@ -89,9 +89,7 @@ const getComments = async (req, res) => {
       comments,
     });
   } catch (error) {
-    console.error("Get comments error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching comments",
     });
   }

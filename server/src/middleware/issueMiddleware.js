@@ -1,3 +1,5 @@
+// Issue access control.
+
 const Project = require("../models/project");
 
 const checkIssueProjectAccess = async (req, res, next) => {
@@ -28,9 +30,7 @@ const checkIssueProjectAccess = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Issue project access error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while checking project access",
     });
   }

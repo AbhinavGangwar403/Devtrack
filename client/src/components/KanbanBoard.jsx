@@ -1,3 +1,5 @@
+// Kanban issue board and status updates.
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { updateIssue } from "../services/issueService";
@@ -86,8 +88,6 @@ const KanbanBoard = ({
     const issueId = draggedIssue._id;
     const previousStatus =
       draggedIssue.status;
-
-    // Optimistic UI update
     setIssues((prevIssues) =>
       prevIssues.map((issue) =>
         issue._id === issueId
@@ -121,7 +121,6 @@ const KanbanBoard = ({
         )
       );
     } catch (error) {
-      // Rollback if API fails
       setIssues((prevIssues) =>
         prevIssues.map((issue) =>
           issue._id === issueId
@@ -132,12 +131,7 @@ const KanbanBoard = ({
             : issue
         )
       );
-
-      console.error(
-        "Failed to update issue status:",
-        error
-      );
-    } finally {
+} finally {
       setUpdatingIssue(null);
       setDraggedIssue(null);
     }
@@ -197,12 +191,7 @@ const KanbanBoard = ({
             : item
         )
       );
-
-      console.error(
-        "Failed to update issue status:",
-        error
-      );
-    } finally {
+} finally {
       setUpdatingIssue(null);
     }
   };
@@ -242,7 +231,7 @@ const KanbanBoard = ({
                 : "border-slate-800 bg-slate-900"
             }`}
           >
-            {/* Column header */}
+
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold text-white">
@@ -255,7 +244,6 @@ const KanbanBoard = ({
               </div>
             </div>
 
-            {/* Cards */}
             <div className="flex flex-1 flex-col gap-3">
               {columnIssues.map(
                 (issue) => (
@@ -281,7 +269,7 @@ const KanbanBoard = ({
                         : "cursor-grab hover:-translate-y-0.5 hover:border-blue-500/50 active:cursor-grabbing"
                     }`}
                   >
-                    {/* Issue link */}
+
                     <Link
                       to={`/projects/${projectId}/issues/${issue._id}`}
                       className="block"
@@ -321,7 +309,6 @@ const KanbanBoard = ({
                       )}
                     </Link>
 
-                    {/* Assignee */}
                     <div className="mt-4 flex items-center justify-between">
                       {issue.assignee ? (
                         <span className="truncate text-xs text-slate-500">
@@ -341,7 +328,6 @@ const KanbanBoard = ({
                       )}
                     </div>
 
-                    {/* Labels */}
                     {issue.labels?.length >
                       0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -363,7 +349,6 @@ const KanbanBoard = ({
                       </div>
                     )}
 
-                    {/* Status selector */}
                     <div className="mt-4 border-t border-slate-800 pt-3">
                       <select
                         value={
@@ -405,7 +390,6 @@ const KanbanBoard = ({
                 )
               )}
 
-              {/* Empty column */}
               {columnIssues.length ===
                 0 && (
                 <div

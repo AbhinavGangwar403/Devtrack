@@ -1,3 +1,5 @@
+// Issue controller.
+
 const Issue = require("../models/issue");
 const Project = require("../models/project");
 const createActivity = require("../utils/activityLogger");
@@ -78,9 +80,7 @@ const createIssue = async (req, res) => {
       issue: populatedIssue,
     });
   } catch (error) {
-    console.error("Create issue error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while creating issue",
     });
   }
@@ -175,9 +175,7 @@ const getIssues = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get issues error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching issues",
     });
   }
@@ -207,9 +205,7 @@ const getIssue = async (req, res) => {
       issue,
     });
   } catch (error) {
-    console.error("Get issue error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching issue",
     });
   }
@@ -345,9 +341,7 @@ const updateIssue = async (req, res) => {
       issue: updatedIssue,
     });
   } catch (error) {
-    console.error("Update issue error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while updating issue",
     });
   }
@@ -398,9 +392,7 @@ const deleteIssue = async (req, res) => {
       message: "Issue deleted successfully",
     });
   } catch (error) {
-    console.error("Delete issue error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while deleting issue",
     });
   }
@@ -481,14 +473,11 @@ const assignIssue = async (req, res) => {
       },
     });
 
-
-
     const updatedIssue = await Issue.findById(
       issue._id
     )
       .populate("creator", "name email")
       .populate("assignee", "name email");
-
 
     const io = getIO();
 
@@ -502,9 +491,7 @@ const assignIssue = async (req, res) => {
       issue: updatedIssue,
     });
   } catch (error) {
-    console.error("Assign issue error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while assigning issue",
     });
   }

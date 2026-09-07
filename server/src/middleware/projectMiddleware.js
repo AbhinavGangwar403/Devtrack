@@ -1,3 +1,5 @@
+// Project access and role control.
+
 const Project = require("../models/project");
 
 const checkProjectMember = async (req, res, next) => {
@@ -26,9 +28,7 @@ const checkProjectMember = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Project authorization error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while checking project access",
     });
   }

@@ -1,3 +1,5 @@
+// Issue details, editing, comments, and activity.
+
 import { useEffect, useState } from "react";
 import {
   Link,
@@ -21,6 +23,8 @@ import {
 import IssueForm from "../components/IssueForm";
 import CommentsPanel from "../components/CommentsPanel";
 import ActivityPanel from "../components/ActivityPanel";
+import ConfirmModal from "../components/ConfirmModal";
+import socket from "../services/socket";
 
 const priorityStyles = {
   LOW: "bg-slate-800 text-slate-300",
@@ -41,6 +45,7 @@ const IssueDetails = () => {
   const [error, setError] = useState("");
 
   const [editing, setEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -75,11 +80,27 @@ const IssueDetails = () => {
     fetchData();
   }, [projectId, issueId]);
 
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    socket.connect();
+    socket.emit("join-project", projectId);
+
+    return () => {
+      socket.emit("leave-project", projectId);
+      socket.disconnect();
+    };
+  }, [projectId]);
+
   const currentMember =
     project?.members?.find(
       (member) =>
-        (member.user?._id ||
-          member.user) === user?._id
+        String(
+          member.user?._id ||
+            member.user
+        ) === String(user?._id)
     );
 
   const role =
@@ -116,15 +137,9 @@ const IssueDetails = () => {
   };
 
   const handleDelete = async () => {
-    if (
-      !window.confirm(
-        "Delete this issue? This cannot be undone."
-      )
-    ) {
-      return;
-    }
-
     try {
+      setError("");
+
       await deleteIssue(
         projectId,
         issueId
@@ -138,6 +153,8 @@ const IssueDetails = () => {
         error.response?.data?.message ||
           "Failed to delete issue."
       );
+    } finally {
+      setShowDeleteModal(false);
     }
   };
 
@@ -187,7 +204,6 @@ const IssueDetails = () => {
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-6xl">
 
-        {/* Back */}
         <Link
           to={`/projects/${projectId}`}
           className="text-sm text-slate-400 hover:text-white"
@@ -195,14 +211,12 @@ const IssueDetails = () => {
           ← Back to project
         </Link>
 
-        {/* Error */}
         {error && (
           <div className="mt-5 rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
 
-        {/* Header */}
         <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
@@ -249,7 +263,7 @@ const IssueDetails = () => {
 
               {isPrivileged && (
                 <button
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteModal(true)}
                   className="rounded-lg border border-red-900 px-4 py-2.5 text-sm text-red-400 hover:bg-red-950/40"
                 >
                   Delete
@@ -258,7 +272,6 @@ const IssueDetails = () => {
             </div>
           </div>
 
-          {/* Metadata */}
           <div className="mt-6 grid gap-4 border-t border-slate-800 pt-6 sm:grid-cols-2 lg:grid-cols-4">
 
             <div>
@@ -345,7 +358,6 @@ const IssueDetails = () => {
             </div>
           </div>
 
-          {/* Labels */}
           {issue.labels?.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
               {issue.labels.map(
@@ -362,7 +374,6 @@ const IssueDetails = () => {
           )}
         </div>
 
-        {/* Edit */}
         {editing && (
           <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
             <h2 className="mb-6 text-xl font-semibold">
@@ -382,7 +393,6 @@ const IssueDetails = () => {
           </div>
         )}
 
-        {/* Comments + Activity */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <CommentsPanel
             projectId={projectId}
@@ -394,6 +404,14 @@ const IssueDetails = () => {
           />
         </div>
 
+        <ConfirmModal
+          open={showDeleteModal}
+          title="Delete Issue"
+          message="Are you sure you want to delete this issue? This action cannot be undone."
+          confirmText="Delete Issue"
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
       </div>
     </div>
   );

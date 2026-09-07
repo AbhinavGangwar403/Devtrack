@@ -1,3 +1,5 @@
+// Dashboard page and project analytics.
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -18,6 +20,8 @@ const Dashboard = () => {
     useState("");
 
   const [loading, setLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] =
+    useState("");
 
   const fetchDashboard = async () => {
     try {
@@ -29,8 +33,6 @@ const Dashboard = () => {
         [];
 
       setProjects(projectList);
-
-      // Select the first project for dashboard analytics
       if (projectList.length > 0) {
         setSelectedProjectId(
           projectList[0]._id
@@ -60,7 +62,6 @@ const Dashboard = () => {
             }))
           );
         } catch {
-          // Ignore individual project failures
         }
       }
 
@@ -68,18 +69,12 @@ const Dashboard = () => {
         issueResults.slice(0, 8)
       );
     } catch (error) {
-      console.error(
-        "Dashboard error:",
-        error
-      );
-    } finally {
+} finally {
       setLoading(false);
     }
   };
 
-  /*
-   * Load analytics for selected project
-   */
+  
   const loadAnalytics = async () => {
     if (!selectedProjectId) {
       return;
@@ -93,42 +88,36 @@ const Dashboard = () => {
 
       setAnalytics(data);
     } catch (error) {
-      console.error(
-        "Failed to load analytics:",
-        error
-      );
-
-      setAnalytics(null);
+setAnalytics(null);
     }
   };
 
-  /*
-   * Load dashboard data
-   */
+  
   useEffect(() => {
     fetchDashboard();
   }, []);
 
-  /*
-   * Load analytics whenever
-   * selected project changes
-   */
+  
   useEffect(() => {
     loadAnalytics();
   }, [selectedProjectId]);
 
-  /*
-   * Refresh analytics when
-   * issues change in real time
-   */
+  
   useEffect(() => {
     if (!selectedProjectId) {
       return;
     }
 
+    socket.connect();
+
     const refreshAnalytics = () => {
       loadAnalytics();
     };
+
+    socket.emit(
+      "join-project",
+      selectedProjectId
+    );
 
     socket.on(
       "issue-created",
@@ -146,6 +135,11 @@ const Dashboard = () => {
     );
 
     return () => {
+      socket.emit(
+        "leave-project",
+        selectedProjectId
+      );
+
       socket.off(
         "issue-created",
         refreshAnalytics
@@ -160,6 +154,8 @@ const Dashboard = () => {
         "issue-deleted",
         refreshAnalytics
       );
+
+      socket.disconnect();
     };
   }, [selectedProjectId]);
 
@@ -185,7 +181,6 @@ const Dashboard = () => {
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
 
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">
             Dashboard
@@ -196,7 +191,6 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Stats */}
         <div className="mt-8 grid gap-5 md:grid-cols-3">
 
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
@@ -231,7 +225,6 @@ const Dashboard = () => {
 
         </div>
 
-        {/* Analytics */}
         {projects.length > 0 && (
           <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
 
@@ -273,15 +266,14 @@ const Dashboard = () => {
                 analytics={analytics}
               />
             ) : (
-              <p className="py-8 text-center text-sm text-slate-500">
-                Loading analytics...
+              <p className="py-8 text-center text-sm text-red-400">
+                {analyticsError || "Loading analytics..."}
               </p>
             )}
 
           </div>
         )}
 
-        {/* Projects */}
         <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
 
           <div className="flex items-center justify-between">
@@ -342,7 +334,6 @@ const Dashboard = () => {
 
         </div>
 
-        {/* Recent Issues */}
         <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
 
           <h2 className="text-xl font-semibold">

@@ -1,8 +1,8 @@
+// Project member controller.
+
 const Project = require("../models/project");
 const User = require("../models/user");
 const createActivity = require("../utils/activityLogger");
-
-// GET MEMBERS
 const getMembers = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
@@ -18,15 +18,11 @@ const getMembers = async (req, res) => {
       members: project.members,
     });
   } catch (error) {
-    console.error("Get members error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching members",
     });
   }
 };
-
-// ADD MEMBER
 const addMember = async (req, res) => {
   try {
     const { email, role } = req.body;
@@ -92,15 +88,11 @@ const addMember = async (req, res) => {
       project: updatedProject,
     });
   } catch (error) {
-    console.error("Add member error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while adding member",
     });
   }
 };
-
-// REMOVE MEMBER
 const removeMember = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -149,15 +141,11 @@ const removeMember = async (req, res) => {
       project: updatedProject,
     });
   } catch (error) {
-    console.error("Remove member error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while removing member",
     });
   }
 };
-
-// UPDATE MEMBER ROLE
 const updateMemberRole = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -211,9 +199,7 @@ const updateMemberRole = async (req, res) => {
       project: updatedProject,
     });
   } catch (error) {
-    console.error("Update member role error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while updating member role",
     });
   }

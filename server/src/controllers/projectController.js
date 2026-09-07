@@ -1,6 +1,6 @@
-const Project = require("../models/project");
+// Project controller.
 
-// CREATE PROJECT
+const Project = require("../models/project");
 const createProject = async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -28,15 +28,11 @@ const createProject = async (req, res) => {
       project,
     });
   } catch (error) {
-    console.error("Create project error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while creating project",
     });
   }
 };
-
-// GET USER'S PROJECTS
 const getProjects = async (req, res) => {
   try {
     const projects = await Project.find({
@@ -49,15 +45,11 @@ const getProjects = async (req, res) => {
       projects,
     });
   } catch (error) {
-    console.error("Get projects error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching projects",
     });
   }
 };
-
-// GET SINGLE PROJECT
 const getProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
@@ -85,15 +77,11 @@ const getProject = async (req, res) => {
       project,
     });
   } catch (error) {
-    console.error("Get project error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while fetching project",
     });
   }
 };
-
-// UPDATE PROJECT
 const updateProject = async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -119,15 +107,11 @@ const updateProject = async (req, res) => {
       project,
     });
   } catch (error) {
-    console.error("Update project error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while updating project",
     });
   }
 };
-
-// DELETE PROJECT
 const deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -144,9 +128,7 @@ const deleteProject = async (req, res) => {
       message: "Project deleted successfully",
     });
   } catch (error) {
-    console.error("Delete project error:", error);
-
-    res.status(500).json({
+res.status(500).json({
       message: "Server error while deleting project",
     });
   }

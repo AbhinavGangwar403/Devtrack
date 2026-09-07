@@ -1,3 +1,5 @@
+// Socket.IO project room management.
+
 let io;
 
 const initializeSocket = (socketIO) => {

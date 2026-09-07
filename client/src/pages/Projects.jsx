@@ -1,3 +1,5 @@
+// Project listing and creation.
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -74,7 +76,6 @@ const Projects = () => {
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
 
-        {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">
@@ -94,14 +95,12 @@ const Projects = () => {
           </button>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-6 rounded-lg border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
 
-        {/* Create form */}
         {showForm && (
           <div className="mb-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
             <h2 className="mb-5 text-xl font-semibold">
@@ -153,7 +152,6 @@ const Projects = () => {
           </div>
         )}
 
-        {/* Projects */}
         {loading ? (
           <div className="py-20 text-center text-slate-400">
             Loading projects...

@@ -1,3 +1,5 @@
+// Project analytics controller.
+
 const Project = require("../models/project");
 const Issue = require("../models/issue");
 
@@ -28,7 +30,6 @@ const getProjectAnalytics = async (
       priorityResult,
       assigneeResult,
     ] = await Promise.all([
-      // Total + completed issues
       Issue.aggregate([
         {
           $match: {
@@ -58,8 +59,6 @@ const getProjectAnalytics = async (
           },
         },
       ]),
-
-      // Issues by status
       Issue.aggregate([
         {
           $match: {
@@ -80,8 +79,6 @@ const getProjectAnalytics = async (
           },
         },
       ]),
-
-      // Issues by priority
       Issue.aggregate([
         {
           $match: {
@@ -102,8 +99,6 @@ const getProjectAnalytics = async (
           },
         },
       ]),
-
-      // Issues by assignee
       Issue.aggregate([
         {
           $match: {
@@ -175,12 +170,7 @@ const getProjectAnalytics = async (
       byAssignee: assigneeResult,
     });
   } catch (error) {
-    console.error(
-      "Analytics error:",
-      error
-    );
-
-    return res.status(500).json({
+return res.status(500).json({
       message:
         "Failed to load analytics",
     });

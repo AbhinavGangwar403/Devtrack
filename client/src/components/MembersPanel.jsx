@@ -1,9 +1,13 @@
+// Project member management.
+
 import { useState } from "react";
 import {
   addMember,
   removeMember,
   updateMemberRole,
 } from "../services/memberService";
+
+import ConfirmModal from "./ConfirmModal";
 
 const MembersPanel = ({
   projectId,
@@ -23,6 +27,9 @@ const MembersPanel = ({
 
   const isOwner =
     currentUserRole === "OWNER";
+
+  const [memberToRemove, setMemberToRemove] =
+    useState(null);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -59,14 +66,6 @@ const MembersPanel = ({
   };
 
   const handleRemove = async (userId) => {
-    if (
-      !window.confirm(
-        "Remove this member from the project?"
-      )
-    ) {
-      return;
-    }
-
     try {
       setError("");
 
@@ -85,8 +84,8 @@ const MembersPanel = ({
           ...prev,
           members: prev.members.filter(
             (member) =>
-              (member.user?._id || member.user) !==
-              userId
+              String(member.user?._id || member.user) !==
+              String(userId)
           ),
         }));
       }
@@ -95,6 +94,8 @@ const MembersPanel = ({
         error.response?.data?.message ||
           "Failed to remove member."
       );
+    } finally {
+      setMemberToRemove(null);
     }
   };
 
@@ -226,7 +227,8 @@ const MembersPanel = ({
               memberUser?._id || memberUser;
 
             const isCurrentUser =
-              memberId === currentUserId;
+              String(memberId) ===
+              String(currentUserId);
 
             return (
               <div
@@ -290,7 +292,12 @@ const MembersPanel = ({
                     memberId !== currentUserId && (
                       <button
                         onClick={() =>
-                          handleRemove(memberId)
+                          setMemberToRemove({
+                            id: memberId,
+                            name:
+                              memberUser?.name ||
+                              "this member",
+                          })
                         }
                         className="rounded-lg border border-red-900 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40"
                       >
@@ -303,6 +310,19 @@ const MembersPanel = ({
           })}
         </div>
       </div>
+
+      <ConfirmModal
+        open={Boolean(memberToRemove)}
+        title="Remove Member"
+        message={`Are you sure you want to remove ${
+          memberToRemove?.name || "this member"
+        } from the project?`}
+        confirmText="Remove Member"
+        onConfirm={() =>
+          handleRemove(memberToRemove?.id)
+        }
+        onCancel={() => setMemberToRemove(null)}
+      />
     </div>
   );
 };

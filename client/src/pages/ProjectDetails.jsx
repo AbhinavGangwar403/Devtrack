@@ -1,3 +1,5 @@
+// Project details, issues, members, and activity.
+
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -19,6 +21,7 @@ import IssueForm from "../components/IssueForm";
 import MembersPanel from "../components/MembersPanel";
 import ActivityPanel from "../components/ActivityPanel";
 import KanbanBoard from "../components/KanbanBoard";
+import ConfirmModal from "../components/ConfirmModal";
 
 import socket from "../services/socket";
 
@@ -44,6 +47,9 @@ const ProjectDetails = () => {
   const [showEditProject, setShowEditProject] =
     useState(false);
 
+  const [showDeleteModal, setShowDeleteModal] =
+    useState(false);
+
   const [projectForm, setProjectForm] = useState({
     name: "",
     description: "",
@@ -54,10 +60,6 @@ const ProjectDetails = () => {
     status: "",
     priority: "",
   });
-
-  // =========================
-  // Fetch Project
-  // =========================
 
   const fetchProject = async () => {
     try {
@@ -85,10 +87,6 @@ const ProjectDetails = () => {
       setLoading(false);
     }
   };
-
-  // =========================
-  // Fetch Issues
-  // =========================
 
   const fetchIssues = async () => {
     try {
@@ -127,10 +125,6 @@ const ProjectDetails = () => {
     }
   };
 
-  // =========================
-  // Effects
-  // =========================
-
   useEffect(() => {
     if (projectId) {
       fetchProject();
@@ -149,10 +143,6 @@ const ProjectDetails = () => {
     filters.priority,
     issueView,
   ]);
-
-  // =========================
-  // Socket.IO Project Room
-  // =========================
 
   useEffect(() => {
     if (!projectId) {
@@ -175,10 +165,6 @@ const ProjectDetails = () => {
       socket.disconnect();
     };
   }, [projectId]);
-
-  // =========================
-  // Socket.IO Issue Events
-  // =========================
 
   useEffect(() => {
     const handleIssueCreated = (issue) => {
@@ -255,9 +241,8 @@ const ProjectDetails = () => {
     };
   }, []);
 
-  // =========================
-  // Current User / Permissions
-  // =========================
+  const currentUserId =
+    user?._id || user?.id;
 
   const currentMember =
     project?.members?.find(
@@ -268,7 +253,7 @@ const ProjectDetails = () => {
 
         return (
           String(memberId) ===
-          String(user?._id)
+          String(currentUserId)
         );
       }
     );
@@ -286,10 +271,6 @@ const ProjectDetails = () => {
   const canAssignIssues =
     currentUserRole === "OWNER" ||
     currentUserRole === "ADMIN";
-
-  // =========================
-  // Create Issue
-  // =========================
 
   const handleCreateIssue = async (
     issueData
@@ -310,10 +291,6 @@ const ProjectDetails = () => {
       throw error;
     }
   };
-
-  // =========================
-  // Update Project
-  // =========================
 
   const handleUpdateProject = async (e) => {
     e.preventDefault();
@@ -340,21 +317,10 @@ const ProjectDetails = () => {
     }
   };
 
-  // =========================
-  // Delete Project
-  // =========================
-
   const handleDeleteProject = async () => {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this project? This cannot be undone."
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
+      setError("");
+
       await deleteProject(projectId);
 
       window.location.href =
@@ -364,12 +330,10 @@ const ProjectDetails = () => {
         error.response?.data?.message ||
           "Failed to delete project."
       );
+    } finally {
+      setShowDeleteModal(false);
     }
   };
-
-  // =========================
-  // Filters
-  // =========================
 
   const handleFilterChange = (e) => {
     setFilters({
@@ -377,10 +341,6 @@ const ProjectDetails = () => {
       [e.target.name]: e.target.value,
     });
   };
-
-  // =========================
-  // Loading
-  // =========================
 
   if (loading) {
     return (
@@ -392,10 +352,6 @@ const ProjectDetails = () => {
     );
   }
 
-  // =========================
-  // Project Not Found
-  // =========================
-
   if (!project) {
     return (
       <div className="p-6 md:p-8">
@@ -405,10 +361,6 @@ const ProjectDetails = () => {
       </div>
     );
   }
-
-  // =========================
-  // Issue Stats
-  // =========================
 
   const openIssues =
     issues.filter(
@@ -426,7 +378,6 @@ const ProjectDetails = () => {
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
 
-        {/* Back */}
         <Link
           to="/projects"
           className="text-sm text-slate-400 hover:text-white"
@@ -434,14 +385,12 @@ const ProjectDetails = () => {
           ← Back to projects
         </Link>
 
-        {/* Error */}
         {error && (
           <div className="mt-5 rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
 
-        {/* Project Header */}
         <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
 
           <div className="flex items-center gap-4">
@@ -475,7 +424,6 @@ const ProjectDetails = () => {
 
           </div>
 
-          {/* Project Actions */}
           <div className="flex flex-wrap gap-3">
 
             {canManageProject && (
@@ -493,8 +441,8 @@ const ProjectDetails = () => {
 
             {canDeleteProject && (
               <button
-                onClick={
-                  handleDeleteProject
+                onClick={() =>
+                  setShowDeleteModal(true)
                 }
                 className="rounded-lg border border-red-900 px-5 py-3 font-medium text-red-400 hover:bg-red-950/40"
               >
@@ -515,7 +463,6 @@ const ProjectDetails = () => {
 
         </div>
 
-        {/* Edit Project */}
         {showEditProject && (
           <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
 
@@ -584,7 +531,6 @@ const ProjectDetails = () => {
           </div>
         )}
 
-        {/* Stats */}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
 
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
@@ -626,7 +572,6 @@ const ProjectDetails = () => {
 
         </div>
 
-        {/* Tabs */}
         <div className="mt-8 overflow-x-auto border-b border-slate-800">
 
           <div className="flex min-w-max gap-7">
@@ -658,7 +603,6 @@ const ProjectDetails = () => {
 
         </div>
 
-        {/* Create Issue Modal */}
         {showIssueForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
 
@@ -702,12 +646,7 @@ const ProjectDetails = () => {
           </div>
         )}
 
-        {/* Main Content */}
         <div className="mt-8">
-
-          {/* =========================
-              Overview
-          ========================= */}
 
           {activeTab === "overview" && (
             <div className="grid gap-6 lg:grid-cols-2">
@@ -787,10 +726,6 @@ const ProjectDetails = () => {
 
             </div>
           )}
-
-          {/* =========================
-              Issues
-          ========================= */}
 
           {activeTab === "issues" && (
             <div>
@@ -991,27 +926,19 @@ const ProjectDetails = () => {
             </div>
           )}
 
-          {/* =========================
-              Members
-          ========================= */}
-
           {activeTab === "members" && (
             <MembersPanel
               projectId={projectId}
               project={project}
               setProject={setProject}
               currentUserId={
-                user?._id
+                currentUserId
               }
               currentUserRole={
                 currentUserRole
               }
             />
           )}
-
-          {/* =========================
-              Activity
-          ========================= */}
 
           {activeTab === "activity" && (
             <ActivityPanel
@@ -1021,6 +948,14 @@ const ProjectDetails = () => {
 
         </div>
 
+        <ConfirmModal
+          open={showDeleteModal}
+          title="Delete Project"
+          message="Are you sure you want to delete this project? This action cannot be undone."
+          confirmText="Delete Project"
+          onConfirm={handleDeleteProject}
+          onCancel={() => setShowDeleteModal(false)}
+        />
       </div>
     </div>
   );
