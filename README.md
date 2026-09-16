@@ -183,17 +183,9 @@ Configure the production environment variables in Render. Set the backend's `CLI
 
 For a Vite single-page application using React Router, configure the static site to rewrite frontend routes to `/index.html`.
 
-**Live application:** `YOUR_FRONTEND_URL`
-**Backend API:** `YOUR_BACKEND_URL`
+**Live application:** `https://devtrack-god4.onrender.com`
+**Backend API:** `https://devtrack-api-rijf.onrender.com`
 
-## Screenshots
-
-Add screenshots of the application here:
-
-* Dashboard and analytics
-* Project overview and members
-* Kanban board
-* Issue details, comments, and activity
 
 ## Future Improvements
 
